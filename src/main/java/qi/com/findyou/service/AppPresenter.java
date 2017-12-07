@@ -49,7 +49,7 @@ public class AppPresenter {
 
                     @Override
                     public void onNext(List<Person> response) {
-
+                        activity.getNetData(response);
                     }
                 });
     }

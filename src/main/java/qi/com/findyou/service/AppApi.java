@@ -13,24 +13,24 @@ import rx.Observable;
  */
 
 public interface AppApi {
-    String LOCATION = "/m_location";
-    String WARN = "/m_warn";
-    String HEAR = "/m_heartrate";
-    String MEMBER = "/m_member";
+    String LOCATION = "/m_location/";
+    String WARN = "/m_warn/";
+    String HEAR = "/m_heartrate/";
+    String MEMBER = "/m_member/";
 
-    @POST
+    @POST("?")
     @FormUrlEncoded
     Observable<List<Person>> getLocation(@Field("startTime") String startime,@Field("endTime") String endtime);
 
-    @POST
+    @POST("?")
     @FormUrlEncoded
     Observable<List<Person>> getWarn(@Field("startTime") String startime,@Field("endTime") String endtime);
 
-    @POST
+    @POST("?")
     @FormUrlEncoded
     Observable<List<Person>> getHeart(@Field("startTime") String startime,@Field("endTime") String endtime);
 
-    @POST
+    @POST("?")
     @FormUrlEncoded
     Observable<Person> getMember(@Field("name") String name,@Field("idCard") String endtime);
 

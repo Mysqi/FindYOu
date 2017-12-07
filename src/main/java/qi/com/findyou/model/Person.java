@@ -64,9 +64,7 @@ public class Person implements Serializable{
         this.reporttime = reporttime;
     }
 
-    public char getInfotype() {
-        return infotype;
-    }
+    public char getInfotype() {return infotype;}
 
     public void setInfotype(char infotype) {
         this.infotype = infotype;

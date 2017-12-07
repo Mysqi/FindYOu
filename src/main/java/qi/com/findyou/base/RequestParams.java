@@ -51,7 +51,7 @@ public class RequestParams extends HashMap<String, String> {
 
 	public static RequestParams createWithAuth() throws UnsupportedEncodingException, NoSuchAlgorithmException {
 		RequestParams rp = new RequestParams();
-		String token = LocationApplication.getDeviceId();
+		String token = LocationApplication.getInstance().getDeviceId();
 		long timestamp = System.currentTimeMillis();
 		String signature = AccountManager.generateSignature(token, timestamp);
 

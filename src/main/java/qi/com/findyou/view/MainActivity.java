@@ -16,6 +16,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -31,7 +32,7 @@ import qi.com.findyou.base.LocationApplication;
 import qi.com.findyou.model.Person;
 import qi.com.findyou.service.AppPresenter;
 
-public class MainActivity extends FragmentActivity implements Runnable{
+public class MainActivity extends FragmentActivity implements Runnable {
 
     private static final int REQUEST_PHONE_STATE = 101;
 
@@ -47,10 +48,14 @@ public class MainActivity extends FragmentActivity implements Runnable{
     private DataFragment dataFragment = new DataFragment();
     private UserFragment userFragment = new UserFragment();
     private View mapView;
-    private List<Person> netData;
     private LocationApplication application;
     private Thread thread;
     private AppPresenter appPresenter;
+
+    private boolean isFirst = true;
+    private List<Person> marks = new ArrayList<>();
+
+    private long lastTime;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,18 +63,23 @@ public class MainActivity extends FragmentActivity implements Runnable{
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mapView = findViewById(R.id.tab_conversation);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.READ_PHONE_STATE
             }, REQUEST_PHONE_STATE);
         } else {
             initView();
         }
     }
 
+
     private void initView() {
-        appPresenter=new AppPresenter(this);
-//        appPresenter.getWarn("","");
-        getNetData();//数据添加
+        setDeviceId();
+        application = LocationApplication.getInstance();
+        appPresenter = new AppPresenter(this);
+        appPresenter.getLocation("", "");
         initBeepSound();
         fm = getSupportFragmentManager();
         fragments = new Fragment[]{mapFragment, listFragment, dataFragment, userFragment};
@@ -82,8 +92,9 @@ public class MainActivity extends FragmentActivity implements Runnable{
         lastSelectedTab = mapView;
         //设置默认进入的fragment
         mapView.setSelected(true);
+        thread = new Thread(this);
+        thread.start();
     }
-
 
     public void onTabClicked(View view) {
         if (view.isSelected()) {
@@ -97,7 +108,7 @@ public class MainActivity extends FragmentActivity implements Runnable{
         }
         view.setSelected(true);
         lastSelectedTab = view;
-        if(view.getId() != R.id.tab_conversation){
+        if (view.getId() != R.id.tab_conversation) {
             hideKeyboard();
         }
         switch (view.getId()) {
@@ -147,9 +158,6 @@ public class MainActivity extends FragmentActivity implements Runnable{
         }
     }
 
-    private boolean isFirst = true;
-    private long lastTime;
-
     //连续按两次退出
     @Override
     public void onBackPressed() {
@@ -161,7 +169,6 @@ public class MainActivity extends FragmentActivity implements Runnable{
             long currentTime = System.currentTimeMillis();
             if (currentTime - lastTime <= 2000) {
                 finish();
-//                finishAffinity();
             } else {
                 Toast.makeText(this, "再按一次退出！", Toast.LENGTH_SHORT).show();
                 lastTime = System.currentTimeMillis();
@@ -169,40 +176,147 @@ public class MainActivity extends FragmentActivity implements Runnable{
         }
     }
 
+    public void setDeviceId() {
+        TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        String deviceId = telephonyManager.getDeviceId();
+//        LocationApplication.getInstance().setDeviceId(deviceId);
+        LocationApplication.getInstance().setDeviceId("353537063938918");//测试
+        Log.e("token", deviceId);
+    }
+
     /**
      * 加个获取权限的监听
      */
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        if (requestCode == REQUEST_PHONE_STATE && grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        if (requestCode == REQUEST_PHONE_STATE && grantResults.length == 2 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             initView();
-        }else {
+        } else {
             finish();
         }
     }
 
-    public void getNetData() {
-        setMarksListData();
-        application = LocationApplication.getInstance();
-        application.setPersonList(marks);
-    }
-    public void getNetData(List<Person>list) {
+    public void getNetData(List<Person> list) {
+        Log.e("locaton",list.toString());
         marks.clear();
         marks.addAll(list);
-        application = LocationApplication.getInstance();
         application.setPersonList(marks);
         BaseFragment fragment = (BaseFragment) getVisibleFragment();
-        if(fragment !=null){
+        if (fragment != null) {
             fragment.refreshData();
         }
         for (int i = 0; i < list.size(); i++) {
-            if(list.get(i).getWarntype()>2){
+            if (list.get(i).getWarntype() > 2) {
                 playBeepSoundAndVibrate();
             }
         }
     }
+    /*====位置信息轮训=====*/
+    public void run() {
+        // TODO Auto-generated method stub
+        while (true) {
+            try {
+                Thread.sleep(20000);
+//                Thread.sleep(3*60*1000);
+                handler.sendMessage(handler.obtainMessage());
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+    }
 
-    private List<Person> marks = new ArrayList<>();
+    public Handler handler = new Handler() {
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            appPresenter.getLocation("", "");
+            Log.e("time---", "hahhahah---");
+        }
+    };
+    public Handler handler1 = new Handler() {
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            appPresenter.getLocation("", "");
+            Log.e("time---", "hahhahah---");
+            Person info2 = new Person();
+            //latitude: 22.539007, longitude: 113.942499深圳大学
+            info2.setName("深圳大学");
+            info2.setLatitude(22.539007);
+            info2.setLongitude(113.942499);
+            info2.setId("2222222");
+            info2.setInfotype('A');
+            info2.setWarntype(3);
+            BaseFragment fragment = (BaseFragment) getVisibleFragment();
+            if (fragment != null) {
+                application.addPersonList(info2);
+                playBeepSoundAndVibrate();
+                fragment.refreshData();
+            }
+        }
+    };
+
+    /*======声音和震动=====*/
+    private Vibrator vibrator;
+    private MediaPlayer mediaPlayer;
+    private boolean playBeep;
+    private static final float BEEP_VOLUME = 0.40f;
+    private boolean vibrate;
+
+    private void initBeepSound() {
+        playBeep = true;
+        AudioManager audioService = (AudioManager) getSystemService(AUDIO_SERVICE);
+        if (audioService.getRingerMode() != AudioManager.RINGER_MODE_NORMAL) {
+            playBeep = false;
+        }
+        if (playBeep && mediaPlayer == null) {
+            setVolumeControlStream(AudioManager.STREAM_MUSIC);
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            mediaPlayer.setOnCompletionListener(beepListener);
+            AssetFileDescriptor file = getResources().openRawResourceFd(R.raw.deep);
+            try {
+                mediaPlayer.setDataSource(file.getFileDescriptor(),
+                        file.getStartOffset(), file.getLength());
+                file.close();
+                mediaPlayer.setVolume(BEEP_VOLUME, BEEP_VOLUME);
+                mediaPlayer.prepare();
+            } catch (IOException e) {
+                mediaPlayer = null;
+            }
+        }
+        vibrate = true;
+        vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+    }
+
+    private static final long VIBRATE_DURATION = 200L;
+
+    private void playBeepSoundAndVibrate() {
+        final long[] pattern = {100, 400, 100, 400}; // 停止 开启 停止 开启
+        if (playBeep && mediaPlayer != null) {
+            mediaPlayer.start();
+        }
+        if (vibrate) {
+            Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+            vibrator.vibrate(VIBRATE_DURATION);
+        }
+        vibrator.vibrate(pattern, -1);
+    }
+
+    /**
+     * When the beep has finished playing, rewind to queue up another one.
+     */
+    private final MediaPlayer.OnCompletionListener beepListener = new MediaPlayer.OnCompletionListener() {
+        public void onCompletion(MediaPlayer mediaPlayer) {
+            mediaPlayer.seekTo(0);
+        }
+    };
+
+
+    /*======测试数据=====*/
+    public void getNetData() {
+        setMarksListData();
+        application.setPersonList(marks);
+    }
 
     public void setMarksListData() {
         Person info = new Person();
@@ -262,92 +376,5 @@ public class MainActivity extends FragmentActivity implements Runnable{
         thread = new Thread(this);
         thread.start();
     }
-    public Handler handler = new Handler(){
-        public void handleMessage(Message msg){
-            super.handleMessage(msg);
-            Log.e("time---","hahhahah---");
-            Person info2 = new Person();
-            //latitude: 22.539007, longitude: 113.942499深圳大学
-            info2.setName("深圳大学");
-            info2.setLatitude(22.539007);
-            info2.setLongitude(113.942499);
-            info2.setId("2222222");
-            info2.setInfotype('A');
-            info2.setWarntype(3);
-            BaseFragment fragment = (BaseFragment) getVisibleFragment();
-            if(fragment !=null){
-                application.addPersonList(info2);
-               playBeepSoundAndVibrate();
-                fragment.refreshData();
-            }
-        }
-    };
-    public void run() {
-        // TODO Auto-generated method stub
-        while(true){
-            try {
-                Thread.sleep(20000);
-//                Thread.sleep(3*60*1000);
-                handler.sendMessage(handler.obtainMessage());
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private Vibrator vibrator;
-    private MediaPlayer mediaPlayer;
-    private boolean playBeep;
-    private static final float BEEP_VOLUME = 0.40f;
-    private boolean vibrate;
-    private void initBeepSound() {
-        playBeep = true;
-        AudioManager audioService = (AudioManager) getSystemService(AUDIO_SERVICE);
-        if (audioService.getRingerMode() != AudioManager.RINGER_MODE_NORMAL) {
-            playBeep = false;
-        }
-        if (playBeep && mediaPlayer == null) {
-            setVolumeControlStream(AudioManager.STREAM_MUSIC);
-            mediaPlayer = new MediaPlayer();
-            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-            mediaPlayer.setOnCompletionListener(beepListener);
-            AssetFileDescriptor file = getResources().openRawResourceFd(R.raw.deep);
-            try {
-                mediaPlayer.setDataSource(file.getFileDescriptor(),
-                        file.getStartOffset(), file.getLength());
-                file.close();
-                mediaPlayer.setVolume(BEEP_VOLUME, BEEP_VOLUME);
-                mediaPlayer.prepare();
-            } catch (IOException e) {
-                mediaPlayer = null;
-            }
-        }
-        vibrate = true;
-        vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
-    }
-
-    private static final long VIBRATE_DURATION = 200L;
-
-    private void playBeepSoundAndVibrate() {
-        final long[] pattern = {100, 400, 100, 400}; // 停止 开启 停止 开启
-        if (playBeep && mediaPlayer != null) {
-            mediaPlayer.start();
-        }
-        if (vibrate) {
-            Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
-            vibrator.vibrate(VIBRATE_DURATION);
-        }
-        vibrator.vibrate(pattern, -1);
-    }
-
-    /**
-     * When the beep has finished playing, rewind to queue up another one.
-     */
-    private final MediaPlayer.OnCompletionListener beepListener = new MediaPlayer.OnCompletionListener() {
-        public void onCompletion(MediaPlayer mediaPlayer) {
-            mediaPlayer.seekTo(0);
-        }
-    };
 
 }

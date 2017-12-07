@@ -240,6 +240,7 @@ public class MapFragment extends BaseFragment {
         baiduMap.animateMapStatus(status);
         status = MapStatusUpdateFactory.zoomBy(16f);
         baiduMap.animateMapStatus(status);
+        baiduMap.getUiSettings().setCompassEnabled(false);//设置是否显示指南针
     }
 
 

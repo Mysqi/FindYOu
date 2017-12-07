@@ -5,7 +5,6 @@ import android.app.Application;
 import android.app.Service;
 import android.content.Context;
 import android.os.Vibrator;
-import android.telephony.TelephonyManager;
 
 import com.baidu.mapapi.SDKInitializer;
 
@@ -26,6 +25,7 @@ public class LocationApplication extends Application {
     public static Context applicationContext;
     public static LocationApplication instance;
     private List<Person> personList;
+    private static String deviceId;
 
     @Override
     public void onCreate() {
@@ -48,14 +48,11 @@ public class LocationApplication extends Application {
     public static Context getAppContext(){
         return  applicationContext;
     }
-    public static String getDeviceId(){
-        TelephonyManager telephonyManager = (TelephonyManager) getAppContext().getSystemService(Context.TELEPHONY_SERVICE);
-        String deviceId = telephonyManager.getDeviceId();
-        if (deviceId != null){
-            return deviceId;
-        }else {
-            return "";
-        }
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
+    }
+    public String getDeviceId() {
+        return deviceId;
     }
 
     public List<Person> getPersonList() {

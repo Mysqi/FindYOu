@@ -1,5 +1,7 @@
 package qi.com.findyou.service;
 
+import android.util.Log;
+
 import java.io.IOException;
 
 import okhttp3.Interceptor;
@@ -29,6 +31,7 @@ public class ApiService {
     }
 
     public static <S> S createApi(Class<S> serviceClass, String apiBaseUrl) {
+        final String deviceId = LocationApplication.getInstance().getDeviceId();
         httpClient.addInterceptor(new Interceptor() {
             @Override
             public Response intercept(Chain chain) throws IOException {
@@ -37,7 +40,8 @@ public class ApiService {
                 Request.Builder requestBuilder = original.newBuilder()
                         .header("Accept", "application/json")
                         .method(original.method(), original.body());
-                requestBuilder.header("imei", LocationApplication.getDeviceId());
+                requestBuilder.header("imei", deviceId);
+                Log.e("imei========",deviceId);
                 Request request = requestBuilder.build();
 
                 return chain.proceed(request);
